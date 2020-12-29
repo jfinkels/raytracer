@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::ops::AddAssign;
 use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Neg;
@@ -11,6 +12,11 @@ struct Color {
     blue: u8,
 }
 
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    x.min(max).max(min)
+}
+
+
 impl Color {
 
     fn new(red: u8, green: u8, blue: u8) -> Color {
@@ -18,7 +24,14 @@ impl Color {
     }
 
     fn from_ratios(red: f64, green: f64, blue: f64) -> Color {
-        Color::new((red * 255.) as u8, (green * 255.) as u8, (blue * 255.) as u8)
+        let red_u8 = (256. * clamp(red, 0., 0.999)) as u8;
+        let green_u8 = (256. * clamp(green, 0., 0.999)) as u8;
+        let blue_u8 = (256. * clamp(blue, 0., 0.999)) as u8;
+        Color::new(red_u8, green_u8, blue_u8)
+    }
+
+    fn from_vec3(v: Vec3) -> Color {
+        Color::from_ratios(v.x, v.y, v.z)
     }
 
     fn to_ppm(&self) -> String {
@@ -58,6 +71,10 @@ impl Vec3 {
 
     fn unit(self: Vec3) -> Vec3 {
         self / self.norm()
+    }
+
+    fn zero() -> Vec3 {
+        Vec3::new(0., 0., 0.)
     }
 }
 
@@ -110,6 +127,13 @@ impl Add for Vec3 {
             y: self.y + rhs.y,
             z: self.z + rhs.z,
         }
+    }
+}
+
+
+impl AddAssign for Vec3 {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
     }
 }
 
@@ -253,40 +277,21 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 
 
 
-fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray) -> Color {
+fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray) -> Vec3 {
 
-    fn background_color(ray: Ray) -> Color {
+    fn background_color(ray: Ray) -> Vec3 {
         let u = ray.direction.unit();
         let t = 0.5 * (u.y + 1.);
         let a = Vec3::new(0.5, 0.7, 1.0);
         let b = Vec3::new(1., 1., 1.);
-        let ratios = Vec3::interpolate(a, b, t);
-
-        let red = ratios.x;
-        let green = ratios.y;
-        let blue = ratios.z;
-
-        Color::from_ratios(red, green, blue)
+        Vec3::interpolate(a, b, t)
     }
 
     let time_bounds = (0., f64::INFINITY);
     let maybe_hit_record = world.hits(&ray, time_bounds);
     match maybe_hit_record {
         Option::None => background_color(ray),
-        Option::Some(hit_record) => {
-
-            // Compute the color for this hit, represented as
-            // percentages for each color.
-            let normal = hit_record.normal;
-            let color_as_ratios = (normal + Vec3::new(1., 1., 1.)) * 0.5;
-
-            // Convert the percentages to a `Color` struct.
-            let red = color_as_ratios.x;
-            let green = color_as_ratios.y;
-            let blue = color_as_ratios.z;
-            Color::from_ratios(red, green, blue)
-
-        },
+        Option::Some(hit_record) => (hit_record.normal + Vec3::new(1., 1., 1.)) * 0.5,
     }
 }
 
@@ -325,6 +330,7 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
+    const SAMPLES_PER_PIXEL: u8 = 100;
 
     // World
     let center1 = Vec3::new(0., 0., -1.);
@@ -362,20 +368,30 @@ fn main() {
     // `IMAGE_HEIGHT` on the top.
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
-            // Compute the direction of the vector from the camera to
-            // the viewport. The camera is at the origin.
-            //
-            // The number `u` determines how far the pixel is along
-            // the horizontal axis, 0 meaning all the way left and 1
-            // meaning all the way right.
-            //
-            // The number `v` determines how far the pixel is along
-            // the vertical axis, 0 meaning all the way at the bottom
-            // and 1 meaning all the way at the top.
-            let u = i as f64 / (IMAGE_WIDTH as f64 - 1.);
-            let v = j as f64 / (IMAGE_HEIGHT as f64 - 1.);
-            let ray = camera.ray_through(u, v);
-            let color = ray_color(&world, ray);
+
+            // We are supersampling at each pixel and taking the
+            // average color in order to anti-alias.
+            let mut sub_color_sum = Vec3::zero();
+            for s in 0..SAMPLES_PER_PIXEL {
+
+                // Compute the direction of the vector from the camera to
+                // the viewport. The camera is at the origin.
+                //
+                // The number `u` determines how far the pixel is along
+                // the horizontal axis, 0 meaning all the way left and 1
+                // meaning all the way right.
+                //
+                // The number `v` determines how far the pixel is along
+                // the vertical axis, 0 meaning all the way at the bottom
+                // and 1 meaning all the way at the top.
+                let u = (i as f64 + rand::random::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
+                let v = (j as f64 + rand::random::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
+                let ray = camera.ray_through(u, v);
+
+                let sub_color = ray_color(&world, ray);
+                sub_color_sum += sub_color;
+            }
+            let color = Color::from_vec3(sub_color_sum / SAMPLES_PER_PIXEL as f64);
             println!("{}", color.to_ppm());
         }
     }
