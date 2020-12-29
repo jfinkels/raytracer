@@ -4,6 +4,8 @@ use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Neg;
 use std::ops::Sub;
+use rand::distributions::Uniform;
+use rand::distributions::Distribution;
 
 #[derive(Debug)]
 struct Color {
@@ -276,22 +278,47 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 }
 
 
+fn background_color(ray: Ray) -> Vec3 {
+    let u = ray.direction.unit();
+    let t = 0.5 * (u.y + 1.);
+    let a = Vec3::new(0.5, 0.7, 1.0);
+    let b = Vec3::new(1., 1., 1.);
+    Vec3::interpolate(a, b, t)
+}
 
-fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray) -> Vec3 {
+fn random_vec3(min: f64, max: f64) -> Vec3 {
+    let unif = Uniform::from(min..max);
+    let mut rng = rand::thread_rng();
+    let x = unif.sample(&mut rng);
+    let y = unif.sample(&mut rng);
+    let z = unif.sample(&mut rng);
+    Vec3::new(x, y, z)
+}
 
-    fn background_color(ray: Ray) -> Vec3 {
-        let u = ray.direction.unit();
-        let t = 0.5 * (u.y + 1.);
-        let a = Vec3::new(0.5, 0.7, 1.0);
-        let b = Vec3::new(1., 1., 1.);
-        Vec3::interpolate(a, b, t)
+fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = random_vec3(-1., 1.);
+        if p.normsquared() < 1. {
+            return p;
+        }
     }
+}
 
+
+fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray, depth: u8) -> Vec3 {
+    if depth <= 0 {
+        return Vec3::zero();
+    }
     let time_bounds = (0., f64::INFINITY);
     let maybe_hit_record = world.hits(&ray, time_bounds);
     match maybe_hit_record {
         Option::None => background_color(ray),
-        Option::Some(hit_record) => (hit_record.normal + Vec3::new(1., 1., 1.)) * 0.5,
+        Option::Some(hit_record) => {
+            let origin = hit_record.point;
+            let target = hit_record.point + hit_record.normal + random_in_unit_sphere();
+            let direction = target - hit_record.point;
+            ray_color(world, Ray::new(origin, direction), depth - 1) * 0.5
+        }
     }
 }
 
@@ -331,6 +358,7 @@ fn main() {
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     const SAMPLES_PER_PIXEL: u8 = 100;
+    const MAX_DEPTH: u8 = 50;
 
     // World
     let center1 = Vec3::new(0., 0., -1.);
@@ -368,7 +396,7 @@ fn main() {
     // `IMAGE_HEIGHT` on the top.
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
-
+            eprintln!("tracing pixel {}, {}", i, j);
             // We are supersampling at each pixel and taking the
             // average color in order to anti-alias.
             let mut sub_color_sum = Vec3::zero();
@@ -388,8 +416,7 @@ fn main() {
                 let v = (j as f64 + rand::random::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
                 let ray = camera.ray_through(u, v);
 
-                let sub_color = ray_color(&world, ray);
-                sub_color_sum += sub_color;
+                sub_color_sum += ray_color(&world, ray, MAX_DEPTH);
             }
             let color = Color::from_vec3(sub_color_sum / SAMPLES_PER_PIXEL as f64);
             println!("{}", color.to_ppm());
