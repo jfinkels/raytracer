@@ -26,6 +26,12 @@ impl Color {
     }
 
     fn from_ratios(red: f64, green: f64, blue: f64) -> Color {
+
+        // Gamma correction with gamma = 2.
+        let red = red.sqrt();
+        let green = green.sqrt();
+        let blue = blue.sqrt();
+
         let red_u8 = (256. * clamp(red, 0., 0.999)) as u8;
         let green_u8 = (256. * clamp(green, 0., 0.999)) as u8;
         let blue_u8 = (256. * clamp(blue, 0., 0.999)) as u8;
@@ -59,8 +65,21 @@ impl Vec3 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
+    fn entrywise_mul(self, other: Vec3) -> Vec3 {
+        Vec3::new(
+            self.x * other.x,
+            self.y * other.y,
+            self.z * other.z,
+        )
+    }
+
     fn interpolate(u: Vec3, v: Vec3, t: f64) -> Vec3 {
         u * t + v * (1. - t)
+    }
+
+    fn near_zero(&self) -> bool {
+        const EPS: f64 = 1e-8;
+        return self.x.abs() < EPS && self.y.abs() < EPS && self.z.abs() < EPS;
     }
 
     fn normsquared(self) -> f64 {
@@ -178,11 +197,12 @@ struct HitRecord {
     normal: Vec3,
     time: f64,
     front_face: bool,
+    material: Box<dyn Material>,
 }
 
 
 impl HitRecord {
-    fn new(ray: &Ray, time: f64, outward_normal: Vec3) -> HitRecord {
+    fn new(ray: &Ray, time: f64, outward_normal: Vec3, material: Box<dyn Material>) -> HitRecord {
         let point = ray.at(time);
         let front_face = ray.direction.dot(outward_normal) < 0.;
         let normal = if front_face {
@@ -190,7 +210,7 @@ impl HitRecord {
         } else {
             -outward_normal
         };
-        HitRecord { point, normal, time, front_face }
+        HitRecord { point, normal, time, front_face, material }
     }
 }
 
@@ -203,12 +223,13 @@ trait Hittable {
 struct Sphere {
     center: Vec3,
     radius: f64,
+    material: Box<dyn Material>,
 }
 
 impl Sphere {
 
-    fn new(center: Vec3, radius: f64) -> Sphere {
-        Sphere { center, radius }
+    fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+        Sphere { center, radius, material }
     }
 
 }
@@ -245,7 +266,9 @@ impl Hittable for Sphere {
 
             let point = ray.at(t);
             let normal = (point - self.center) / self.radius;
-            Some(HitRecord::new(ray, t, normal))
+            // FIXME I don't understand how to avoid cloning here.
+            let material = self.material.clone();
+            Some(HitRecord::new(ray, t, normal, material))
         }
     }
 
@@ -295,6 +318,12 @@ fn random_vec3(min: f64, max: f64) -> Vec3 {
     Vec3::new(x, y, z)
 }
 
+
+fn random_unit_vector() -> Vec3 {
+    random_in_unit_sphere().unit()
+}
+
+
 fn random_in_unit_sphere() -> Vec3 {
     loop {
         let p = random_vec3(-1., 1.);
@@ -304,20 +333,45 @@ fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
+fn random_in_hemisphere(normal: Vec3) -> Vec3 {
+    let v = random_in_unit_sphere();
+    if v.dot(normal) > 0. {
+        v
+    } else {
+        -v
+    }
+}
+
+
 
 fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray, depth: u8) -> Vec3 {
     if depth <= 0 {
         return Vec3::zero();
     }
-    let time_bounds = (0., f64::INFINITY);
+    let time_bounds = (0.001, f64::INFINITY);
     let maybe_hit_record = world.hits(&ray, time_bounds);
     match maybe_hit_record {
         Option::None => background_color(ray),
         Option::Some(hit_record) => {
-            let origin = hit_record.point;
-            let target = hit_record.point + hit_record.normal + random_in_unit_sphere();
-            let direction = target - hit_record.point;
-            ray_color(world, Ray::new(origin, direction), depth - 1) * 0.5
+
+            // FIXME I don't understand why the clone() is necessary.
+            let material = hit_record.material.clone();
+            match material.scatter(ray, hit_record) {
+                Some((scattered_ray, attenuation)) => {
+                    let recursive_color = ray_color(world, scattered_ray, depth - 1);
+                    attenuation.entrywise_mul(recursive_color)
+                },
+                None => Vec3::zero(),
+            }
+
+            // let point = hit_record.point;
+            // let normal = hit_record.normal;
+
+            // let origin = point;
+            // let target = point + normal + random_in_hemisphere(normal);
+            // let direction = target - point;
+
+            // ray_color(world, Ray::new(origin, direction), depth - 1) * 0.5
         }
     }
 }
@@ -351,6 +405,83 @@ impl Camera {
 
 
 
+type AttenuatedRay = (Ray, Vec3);
+
+
+// All this is to allow for cloning `Box<dyn Material>`. See
+// https://stackoverflow.com/questions/30353462/how-to-clone-a-struct-storing-a-boxed-trait-object
+
+trait Material : MaterialClone {
+    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay>;
+}
+
+
+trait MaterialClone {
+    fn clone_box(&self) -> Box<dyn Material>;
+}
+
+impl<T: 'static + Material + Clone> MaterialClone for T {
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Material> {
+    fn clone(&self) -> Box<dyn Material> {
+        self.clone_box()
+    }
+}
+
+#[derive(Clone)]
+struct Lambertian {
+    albedo: Vec3,
+}
+
+impl Lambertian {
+    fn new(albedo: Vec3) -> Lambertian {
+        Lambertian { albedo }
+    }
+}
+
+impl Material for Lambertian {
+    fn scatter(&self, _ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+        let origin = hit_record.point;
+        let direction = hit_record.normal + random_unit_vector();
+        let direction = if direction.near_zero() {
+            hit_record.normal
+        } else {
+            direction
+        };
+        Some((Ray::new(origin, direction), self.albedo))
+    }
+}
+
+#[derive(Clone)]
+struct Metal {
+    albedo: Vec3,
+}
+
+impl Metal {
+    fn new(albedo: Vec3) -> Metal {
+        Metal { albedo }
+    }
+}
+
+fn reflect(v: Vec3, normal: Vec3) -> Vec3 {
+    v - normal * (v.dot(normal) * 2.)
+}
+
+impl Material for Metal {
+    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+        let origin = hit_record.point;
+        let direction = reflect(ray.direction.unit(), hit_record.normal);
+        let scattered_ray = Ray::new(origin, direction);
+        let attenuation = self.albedo;
+        Some((scattered_ray, attenuation))
+    }
+}
+
+
 fn main() {
 
     // Image
@@ -358,16 +489,40 @@ fn main() {
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     const SAMPLES_PER_PIXEL: u8 = 100;
-    const MAX_DEPTH: u8 = 50;
+    const MAX_DEPTH: u8 = 10;
 
     // World
-    let center1 = Vec3::new(0., 0., -1.);
-    let radius1 = 0.5;
-    let sphere1 = Sphere::new(center1, radius1);
-    let center2 = Vec3::new(0., -100.5, -1.);
-    let radius2 = 100.;
-    let sphere2 = Sphere::new(center2, radius2);
-    let world: Vec<Box<dyn Hittable>> = vec![Box::new(sphere1), Box::new(sphere2)];
+
+    let center1 = Vec3::new(0., -100.5, -1.);
+    let radius1 = 100.;
+    let albedo1 = Vec3::new(0.8, 0.8, 0.);
+    let material1 = Lambertian::new(albedo1);
+    let sphere1 = Sphere::new(center1, radius1, Box::new(material1));
+
+    let center2 = Vec3::new(0., 0., -1.);
+    let radius2 = 0.5;
+    let albedo2 = Vec3::new(0.7, 0.3, 0.3);
+    let material2 = Lambertian::new(albedo2);
+    let sphere2 = Sphere::new(center2, radius2, Box::new(material2));
+
+    let center3 = Vec3::new(-1., 0., -1.);
+    let radius3 = 0.5;
+    let albedo3 = Vec3::new(0.8, 0.8, 0.8);
+    let material3 = Metal::new(albedo3);
+    let sphere3 = Sphere::new(center3, radius3, Box::new(material3));
+
+    let center4 = Vec3::new(1., 0., -1.);
+    let radius4 = 0.5;
+    let albedo4 = Vec3::new(0.8, 0.6, 0.2);
+    let material4 = Metal::new(albedo4);
+    let sphere4 = Sphere::new(center4, radius4, Box::new(material4));
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(sphere1),
+        Box::new(sphere2),
+        Box::new(sphere3),
+        Box::new(sphere4),
+    ];
 
     // Camera
     //
@@ -400,7 +555,7 @@ fn main() {
             // We are supersampling at each pixel and taking the
             // average color in order to anti-alias.
             let mut sub_color_sum = Vec3::zero();
-            for s in 0..SAMPLES_PER_PIXEL {
+            for _ in 0..SAMPLES_PER_PIXEL {
 
                 // Compute the direction of the vector from the camera to
                 // the viewport. The camera is at the origin.
