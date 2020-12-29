@@ -341,6 +341,23 @@ fn random_in_unit_sphere() -> Vec3 {
     }
 }
 
+
+fn random_in_unit_disk() -> Vec3 {
+    let min = -1.;
+    let max = 1.;
+    let unif = Uniform::from(min..max);
+    let mut rng = rand::thread_rng();
+    loop {
+        let x = unif.sample(&mut rng);
+        let y = unif.sample(&mut rng);
+        let z = 0.;
+        let p = Vec3::new(x, y, z);
+        if p.normsquared() < 1. {
+            return p;
+        }
+    }
+}
+
 fn random_in_hemisphere(normal: Vec3) -> Vec3 {
     let v = random_in_unit_sphere();
     if v.dot(normal) > 0. {
@@ -390,12 +407,16 @@ struct Camera {
     lower_left_corner: Vec3,
     horizontal: Vec3,
     vertical: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
+    lens_radius: f64,
 }
 
 impl Camera {
 
     // vertical field of view in degrees
-    fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64) -> Camera {
+    fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64) -> Camera {
         let theta = vfov.to_radians();
         let h = (theta / 2.).tan();
         let viewport_height: f64 = 2. * h;
@@ -406,20 +427,24 @@ impl Camera {
         let v = w.cross(u);
 
         let origin = lookfrom;
-        let horizontal = u * viewport_width;
-        let vertical = v * viewport_height;
+        let horizontal = u * viewport_width * focus_dist;
+        let vertical = v * viewport_height * focus_dist;
 
-        let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - w;
+        let lower_left_corner: Vec3 = origin - (horizontal / 2.) - (vertical / 2.) - (w * focus_dist);
+        let lens_radius = aperture / 2.;
 
-        Camera { origin, lower_left_corner, horizontal, vertical }
+        Camera { origin, lower_left_corner, horizontal, vertical, u, v, w, lens_radius }
         
     }
 
     // `s` and `t` are numbers between 0 and 1, representing how far
     // along the viewport axes to generate the ray.
     fn ray_through(&self, s: f64, t: f64) -> Ray {
-        let direction = self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin;
-        Ray::new(self.origin, direction)
+        let rd = random_in_unit_disk() * self.lens_radius;
+        let offset = self.u * rd.x + self.v * rd.y;
+        let origin = self.origin + offset;
+        let direction = self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin - offset;
+        Ray::new(origin, direction)
     }
 
 }
@@ -595,11 +620,13 @@ fn main() {
     // - y is positive going up,
     // - z is positive *coming out of the screen*.
     //
-    let lookfrom = Vec3::new(0., 0., 1.);
+    let lookfrom = Vec3::new(3., 3., 2.);
     let lookat = Vec3::new(0., 0., -1.);
     let vup = Vec3::new(0., 1., 0.);
-    const VFOV: f64 = 90.;
-    let camera = Camera::new(lookfrom, lookat, vup, VFOV, ASPECT_RATIO);
+    let dist_to_focus = (lookfrom - lookat).norm();
+    const APERTURE: f64 = 2.;
+    const VFOV: f64 = 20.;
+    let camera = Camera::new(lookfrom, lookat, vup, VFOV, ASPECT_RATIO, APERTURE, dist_to_focus);
 
     // Render
     println!("P3");
