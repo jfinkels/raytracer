@@ -459,11 +459,12 @@ impl Material for Lambertian {
 #[derive(Clone)]
 struct Metal {
     albedo: Vec3,
+    fuzz: f64,
 }
 
 impl Metal {
-    fn new(albedo: Vec3) -> Metal {
-        Metal { albedo }
+    fn new(albedo: Vec3, fuzz: f64) -> Metal {
+        Metal { albedo, fuzz }
     }
 }
 
@@ -474,13 +475,49 @@ fn reflect(v: Vec3, normal: Vec3) -> Vec3 {
 impl Material for Metal {
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
         let origin = hit_record.point;
-        let direction = reflect(ray.direction.unit(), hit_record.normal);
+        let reflected = reflect(ray.direction.unit(), hit_record.normal);
+        let direction = reflected + random_in_unit_sphere() * self.fuzz;
         let scattered_ray = Ray::new(origin, direction);
         let attenuation = self.albedo;
         Some((scattered_ray, attenuation))
     }
 }
 
+
+#[derive(Clone)]
+struct Dielectric {
+    refraction_index: f64,
+}
+
+impl Dielectric {
+    fn new(refraction_index: f64) -> Dielectric {
+        Dielectric { refraction_index }
+    }
+}
+
+fn refract(unit_vec: Vec3, normal: Vec3, eta_i_over_eta_t: f64) -> Vec3 {
+    let cos_theta = (-unit_vec).dot(normal).min(1.);
+    let r_out_perp = (unit_vec + normal * cos_theta) * eta_i_over_eta_t;
+    let r_out_parallel = -normal * (1. - r_out_perp.normsquared()).abs().sqrt();
+    r_out_perp + r_out_parallel
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+        // Invert the index of refraction if the ray is entering
+        // versus exiting the material.
+        let refraction_ratio = if hit_record.front_face {
+            self.refraction_index.recip()
+        } else {
+            self.refraction_index
+        };
+        let origin = hit_record.point;
+        let direction = refract(ray.direction.unit(), hit_record.normal, refraction_ratio);
+        let scattered_ray = Ray::new(origin, direction);
+        let attenuation = Vec3::new(1., 1., 1.);
+        Some((scattered_ray, attenuation))
+    }
+}
 
 fn main() {
 
@@ -489,7 +526,7 @@ fn main() {
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     const SAMPLES_PER_PIXEL: u8 = 100;
-    const MAX_DEPTH: u8 = 10;
+    const MAX_DEPTH: u8 = 5;
 
     // World
 
@@ -501,20 +538,22 @@ fn main() {
 
     let center2 = Vec3::new(0., 0., -1.);
     let radius2 = 0.5;
-    let albedo2 = Vec3::new(0.7, 0.3, 0.3);
-    let material2 = Lambertian::new(albedo2);
+    let refraction_index2 = 1.5;
+    let material2 = Dielectric::new(refraction_index2);
     let sphere2 = Sphere::new(center2, radius2, Box::new(material2));
 
     let center3 = Vec3::new(-1., 0., -1.);
     let radius3 = 0.5;
     let albedo3 = Vec3::new(0.8, 0.8, 0.8);
-    let material3 = Metal::new(albedo3);
+    let fuzz3 = 0.3;
+    let material3 = Metal::new(albedo3, fuzz3);
     let sphere3 = Sphere::new(center3, radius3, Box::new(material3));
 
     let center4 = Vec3::new(1., 0., -1.);
     let radius4 = 0.5;
+    let fuzz4 = 1.0;
     let albedo4 = Vec3::new(0.8, 0.6, 0.2);
-    let material4 = Metal::new(albedo4);
+    let material4 = Metal::new(albedo4, fuzz4);
     let sphere4 = Sphere::new(center4, radius4, Box::new(material4));
 
     let world: Vec<Box<dyn Hittable>> = vec![
