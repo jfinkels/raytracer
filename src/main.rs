@@ -1,6 +1,7 @@
 use std::ops::Add;
 use std::ops::Div;
 use std::ops::Mul;
+use std::ops::Neg;
 use std::ops::Sub;
 
 #[derive(Debug)]
@@ -113,6 +114,19 @@ impl Add for Vec3 {
 }
 
 
+impl Neg for Vec3 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
+    }
+}
+
+
 #[derive(Debug)]
 struct Ray {
     origin: Vec3,
@@ -137,18 +151,26 @@ struct HitRecord {
     point: Vec3,
     normal: Vec3,
     time: f64,
+    front_face: bool,
 }
 
 
 impl HitRecord {
-    fn new(point: Vec3, normal: Vec3, time: f64) -> HitRecord {
-        HitRecord { point, normal, time }
+    fn new(ray: &Ray, time: f64, outward_normal: Vec3) -> HitRecord {
+        let point = ray.at(time);
+        let front_face = ray.direction.dot(outward_normal) < 0.;
+        let normal = if front_face {
+            outward_normal
+        } else {
+            -outward_normal
+        };
+        HitRecord { point, normal, time, front_face }
     }
 }
 
 
 trait Hittable {
-    fn hits(self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord>;
+    fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord>;
 }
 
 
@@ -167,7 +189,7 @@ impl Sphere {
 
 impl Hittable for Sphere {
 
-    fn hits(self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
+    fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = ray.direction.normsquared();
         let b = ray.direction.dot(oc) * 2.;
@@ -197,11 +219,38 @@ impl Hittable for Sphere {
 
             let point = ray.at(t);
             let normal = (point - self.center) / self.radius;
-            Some(HitRecord::new(point, normal, t))
+            Some(HitRecord::new(ray, t, normal))
         }
     }
 
 }
+
+
+impl Hittable for Vec<Box<dyn Hittable>> {
+
+    fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
+        let mut maybe_closest = None;
+        for hittable in self.into_iter() {
+            if let Some(hit_record) = hittable.hits(ray, time_bounds) {
+                match maybe_closest {
+                    None => {
+                        maybe_closest = Some(hit_record);
+                    },
+                    Some(ref closest) => {
+                        if !hit_record.time.is_nan() {
+                            if hit_record.time < closest.time {
+                                maybe_closest = Some(hit_record);
+                            }
+                        }
+                    },
+                };
+            };
+        };
+        maybe_closest
+
+    }
+}
+
 
 
 fn ray_color(ray: Ray) -> Color {
