@@ -291,6 +291,34 @@ fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray) -> Color {
 }
 
 
+struct Camera {}
+
+impl Camera {
+
+    // `u` and `v` are numbers between 0 and 1, representing how far
+    // along the viewport axes to generate the ray.
+    fn ray_through(&self, u: f64, v: f64) -> Ray {
+
+        const ASPECT_RATIO: f64 = 16.0 / 9.0;
+        const VIEWPORT_HEIGHT: f64 = 2.;
+        const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
+        const FOCAL_LENGTH: f64 = 1.;
+
+        let origin: Vec3 = Vec3::new(0., 0., 0.);
+        let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0., 0.);
+        let vertical: Vec3 = Vec3::new(0., VIEWPORT_HEIGHT, 0.);
+        let depth: Vec3 = Vec3::new(0., 0., FOCAL_LENGTH);
+
+        let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - depth;
+
+        let direction = lower_left_corner + horizontal * u + vertical * v - origin;
+        Ray::new(origin, direction)
+    }
+
+}
+
+
+
 fn main() {
 
     // Image
@@ -313,16 +341,7 @@ fn main() {
     // - y is positive going up,
     // - z is positive *coming out of the screen*.
     //
-    const VIEWPORT_HEIGHT: f64 = 2.;
-    const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
-    const FOCAL_LENGTH: f64 = 1.;
-
-    let origin: Vec3 = Vec3::new(0., 0., 0.);
-    let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0., 0.);
-    let vertical: Vec3 = Vec3::new(0., VIEWPORT_HEIGHT, 0.);
-    let depth: Vec3 = Vec3::new(0., 0., FOCAL_LENGTH);
-
-    let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - depth;
+    let camera = Camera {};
 
     // Render
     println!("P3");
@@ -355,8 +374,7 @@ fn main() {
             // and 1 meaning all the way at the top.
             let u = i as f64 / (IMAGE_WIDTH as f64 - 1.);
             let v = j as f64 / (IMAGE_HEIGHT as f64 - 1.);
-            let direction = lower_left_corner + horizontal * u + vertical * v - origin;
-            let ray = Ray::new(origin, direction);
+            let ray = camera.ray_through(u, v);
             let color = ray_color(&world, ray);
             println!("{}", color.to_ppm());
         }
