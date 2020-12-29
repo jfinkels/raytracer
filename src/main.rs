@@ -61,6 +61,14 @@ impl Vec3 {
         Vec3 { x, y, z }
     }
 
+    fn cross(self, other: Vec3) -> Vec3 {
+        Vec3::new(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
+    }
+
     fn dot(self, other: Vec3) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
@@ -387,28 +395,30 @@ struct Camera {
 impl Camera {
 
     // vertical field of view in degrees
-    fn new(vfov: f64, aspect_ratio: f64) -> Camera {
+    fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64) -> Camera {
         let theta = vfov.to_radians();
         let h = (theta / 2.).tan();
         let viewport_height: f64 = 2. * h;
         let viewport_width: f64 = aspect_ratio * viewport_height;
-        const FOCAL_LENGTH: f64 = 1.;
 
-        let origin: Vec3 = Vec3::new(0., 0., 0.);
-        let horizontal: Vec3 = Vec3::new(viewport_width, 0., 0.);
-        let vertical: Vec3 = Vec3::new(0., viewport_height, 0.);
-        let depth: Vec3 = Vec3::new(0., 0., FOCAL_LENGTH);
+        let w = (lookfrom - lookat).unit();
+        let u = vup.cross(w).unit();
+        let v = w.cross(u);
 
-        let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - depth;
+        let origin = lookfrom;
+        let horizontal = u * viewport_width;
+        let vertical = v * viewport_height;
+
+        let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - w;
 
         Camera { origin, lower_left_corner, horizontal, vertical }
         
     }
 
-    // `u` and `v` are numbers between 0 and 1, representing how far
+    // `s` and `t` are numbers between 0 and 1, representing how far
     // along the viewport axes to generate the ray.
-    fn ray_through(&self, u: f64, v: f64) -> Ray {
-        let direction = self.lower_left_corner + self.horizontal * u + self.vertical * v - self.origin;
+    fn ray_through(&self, s: f64, t: f64) -> Ray {
+        let direction = self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin;
         Ray::new(self.origin, direction)
     }
 
@@ -605,8 +615,11 @@ fn main() {
     // - y is positive going up,
     // - z is positive *coming out of the screen*.
     //
-    const VFOV: f64 = 60.;
-    let camera = Camera::new(VFOV, ASPECT_RATIO);
+    let lookfrom = Vec3::zero();
+    let lookat = Vec3::new(0., 0., -1.);
+    let vup = Vec3::new(0., 1., 0.);
+    const VFOV: f64 = 90.;
+    let camera = Camera::new(lookfrom, lookat, vup, VFOV, ASPECT_RATIO);
 
     // Render
     println!("P3");
