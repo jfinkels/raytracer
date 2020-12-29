@@ -253,7 +253,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 
 
 
-fn ray_color(ray: Ray) -> Color {
+fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray) -> Color {
 
     fn background_color(ray: Ray) -> Color {
         let u = ray.direction.unit();
@@ -269,24 +269,23 @@ fn ray_color(ray: Ray) -> Color {
         Color::from_ratios(red, green, blue)
     }
 
-    let center = Vec3::new(0., 0., -1.);
-    let radius = 0.5;
-    let sphere = Sphere::new(center, radius);
-    let maybe_hit_record = sphere.hits(&ray, (-1000., 1000.));
-
+    let time_bounds = (0., f64::INFINITY);
+    let maybe_hit_record = world.hits(&ray, time_bounds);
     match maybe_hit_record {
         Option::None => background_color(ray),
         Option::Some(hit_record) => {
-            let t = hit_record.time;
-            if t >= 0. {
-                let normal = ray.at(t) - center;
-                let red = 0.5 * (normal.x + 1.);
-                let green = 0.5 * (normal.y + 1.);
-                let blue = 0.5 * (normal.z + 1.);
-                Color::from_ratios(red, green, blue)
-            } else {
-                background_color(ray)
-            }
+
+            // Compute the color for this hit, represented as
+            // percentages for each color.
+            let normal = hit_record.normal;
+            let color_as_ratios = (normal + Vec3::new(1., 1., 1.)) * 0.5;
+
+            // Convert the percentages to a `Color` struct.
+            let red = color_as_ratios.x;
+            let green = color_as_ratios.y;
+            let blue = color_as_ratios.z;
+            Color::from_ratios(red, green, blue)
+
         },
     }
 }
@@ -299,9 +298,21 @@ fn main() {
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
-    // Camera - x is positive to the right, y is positive going up, z
-    // is positive *coming out of the screen*
+    // World
+    let center1 = Vec3::new(0., 0., -1.);
+    let radius1 = 0.5;
+    let sphere1 = Sphere::new(center1, radius1);
+    let center2 = Vec3::new(0., -100.5, -1.);
+    let radius2 = 100.;
+    let sphere2 = Sphere::new(center2, radius2);
+    let world: Vec<Box<dyn Hittable>> = vec![Box::new(sphere1), Box::new(sphere2)];
 
+    // Camera
+    //
+    // - x is positive to the right,
+    // - y is positive going up,
+    // - z is positive *coming out of the screen*.
+    //
     const VIEWPORT_HEIGHT: f64 = 2.;
     const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
     const FOCAL_LENGTH: f64 = 1.;
@@ -346,30 +357,9 @@ fn main() {
             let v = j as f64 / (IMAGE_HEIGHT as f64 - 1.);
             let direction = lower_left_corner + horizontal * u + vertical * v - origin;
             let ray = Ray::new(origin, direction);
-            let color = ray_color(ray);
+            let color = ray_color(&world, ray);
             println!("{}", color.to_ppm());
         }
     }
 
-    // for i in 0..IMAGE_HEIGHT {
-    //     for j in 0..IMAGE_WIDTH {
-
-    //         let u = j as f64 / (IMAGE_WIDTH - 1) as f64;
-    //         let v = i as f64 / (IMAGE_HEIGHT - 1) as f64;
-    //         let direction = subtract(
-    //             subtract(
-    //                 add(
-    //                     upper_left_corner,
-    //                     multiply(u, WIDTH),
-    //                 ),
-    //                 multiply(v, HEIGHT),
-    //             ),
-    //             ORIGIN,
-    //         );
-
-    //         let ray = Ray::new(ORIGIN, direction);
-    //         let color = ray_color(ray);
-    //         println!("{}", color.to_ppm());
-    //     }
-    // }
 }
