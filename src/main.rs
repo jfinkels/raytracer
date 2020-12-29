@@ -495,6 +495,18 @@ impl Dielectric {
     }
 }
 
+
+// Schlick's approximation for reflectance.
+fn reflectance(cosine: f64, refraction_index: f64) -> f64 {
+    let r0 = ((1. - refraction_index) / (1. + refraction_index)).powf(2.);
+    r0 + (1. - r0) * (1. - cosine).powf(5.)
+}
+
+fn is_reflectance_large(cos_theta: f64, refraction_ratio: f64) -> bool {
+    reflectance(cos_theta, refraction_ratio) > rand::random::<f64>()
+}
+
+
 fn refract(unit_vec: Vec3, normal: Vec3, eta_i_over_eta_t: f64) -> Vec3 {
     let cos_theta = (-unit_vec).dot(normal).min(1.);
     let r_out_perp = (unit_vec + normal * cos_theta) * eta_i_over_eta_t;
@@ -503,6 +515,7 @@ fn refract(unit_vec: Vec3, normal: Vec3, eta_i_over_eta_t: f64) -> Vec3 {
 }
 
 impl Material for Dielectric {
+
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
         // Invert the index of refraction if the ray is entering
         // versus exiting the material.
@@ -511,8 +524,20 @@ impl Material for Dielectric {
         } else {
             self.refraction_index
         };
+
         let origin = hit_record.point;
-        let direction = refract(ray.direction.unit(), hit_record.normal, refraction_ratio);
+
+        // Determine if angle of incidence admits refraction. If not, reflect.
+        let unit_direction = ray.direction.unit();
+        let cos_theta = (-unit_direction).dot(hit_record.normal).min(1.);
+        let sin_theta = (1. - cos_theta.powf(2.)).sqrt();
+        let cannot_refract = refraction_ratio * sin_theta > 1.0;
+        let direction = if cannot_refract || is_reflectance_large(cos_theta, refraction_ratio) {
+            reflect(unit_direction, hit_record.normal)
+        } else {
+            refract(unit_direction, hit_record.normal, refraction_ratio)
+        };
+
         let scattered_ray = Ray::new(origin, direction);
         let attenuation = Vec3::new(1., 1., 1.);
         Some((scattered_ray, attenuation))
