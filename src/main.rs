@@ -596,8 +596,8 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-    const SAMPLES_PER_PIXEL: u8 = 100;
-    const MAX_DEPTH: u8 = 10;
+    const SAMPLES_PER_PIXEL: u8 = 200;
+    const MAX_DEPTH: u8 = 20;
 
     // World
 
@@ -624,7 +624,7 @@ fn main() {
     let lookat = Vec3::new(0., 0., -1.);
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = (lookfrom - lookat).norm();
-    const APERTURE: f64 = 2.;
+    const APERTURE: f64 = 1.;
     const VFOV: f64 = 20.;
     let camera = Camera::new(lookfrom, lookat, vup, VFOV, ASPECT_RATIO, APERTURE, dist_to_focus);
 
