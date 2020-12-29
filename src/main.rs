@@ -572,41 +572,21 @@ fn main() {
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     const SAMPLES_PER_PIXEL: u8 = 100;
-    const MAX_DEPTH: u8 = 5;
+    const MAX_DEPTH: u8 = 10;
 
     // World
 
-    let center1 = Vec3::new(0., -100.5, -1.);
-    let radius1 = 100.;
-    let albedo1 = Vec3::new(0.8, 0.8, 0.);
-    let material1 = Lambertian::new(albedo1);
-    let sphere1 = Sphere::new(center1, radius1, Box::new(material1));
-
-    let center2 = Vec3::new(0., 0., -1.);
-    let radius2 = 0.5;
-    let refraction_index2 = 1.5;
-    let material2 = Dielectric::new(refraction_index2);
-    let sphere2 = Sphere::new(center2, radius2, Box::new(material2));
-
-    let center3 = Vec3::new(-1., 0., -1.);
-    let radius3 = 0.5;
-    let albedo3 = Vec3::new(0.8, 0.8, 0.8);
-    let fuzz3 = 0.3;
-    let material3 = Metal::new(albedo3, fuzz3);
-    let sphere3 = Sphere::new(center3, radius3, Box::new(material3));
-
-    let center4 = Vec3::new(1., 0., -1.);
-    let radius4 = 0.5;
-    let fuzz4 = 1.0;
-    let albedo4 = Vec3::new(0.8, 0.6, 0.2);
-    let material4 = Metal::new(albedo4, fuzz4);
-    let sphere4 = Sphere::new(center4, radius4, Box::new(material4));
+    let material_ground = Box::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
+    let material_center = Box::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
+    let material_left = Box::new(Dielectric::new(1.5));
+    let material_right = Box::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.));
 
     let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(sphere1),
-        Box::new(sphere2),
-        Box::new(sphere3),
-        Box::new(sphere4),
+        Box::new(Sphere::new(Vec3::new(0., -100.5, -1.), 100.0, material_ground)),
+        Box::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5, material_center)),
+        Box::new(Sphere::new(Vec3::new(-1., 0., -1.), 0.5, material_left.clone())),
+        Box::new(Sphere::new(Vec3::new(-1., 0., -1.), -0.45, material_left)),
+        Box::new(Sphere::new(Vec3::new(1., 0., -1.), 0.5, material_right)),
     ];
 
     // Camera
@@ -615,7 +595,7 @@ fn main() {
     // - y is positive going up,
     // - z is positive *coming out of the screen*.
     //
-    let lookfrom = Vec3::zero();
+    let lookfrom = Vec3::new(0., 0., 1.);
     let lookat = Vec3::new(0., 0., -1.);
     let vup = Vec3::new(0., 1., 0.);
     const VFOV: f64 = 90.;
