@@ -377,28 +377,39 @@ fn ray_color(world: &Vec<Box<dyn Hittable>>, ray: Ray, depth: u8) -> Vec3 {
 }
 
 
-struct Camera {}
+struct Camera {
+    origin: Vec3,
+    lower_left_corner: Vec3,
+    horizontal: Vec3,
+    vertical: Vec3,
+}
 
 impl Camera {
 
-    // `u` and `v` are numbers between 0 and 1, representing how far
-    // along the viewport axes to generate the ray.
-    fn ray_through(&self, u: f64, v: f64) -> Ray {
-
-        const ASPECT_RATIO: f64 = 16.0 / 9.0;
-        const VIEWPORT_HEIGHT: f64 = 2.;
-        const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
+    // vertical field of view in degrees
+    fn new(vfov: f64, aspect_ratio: f64) -> Camera {
+        let theta = vfov.to_radians();
+        let h = (theta / 2.).tan();
+        let viewport_height: f64 = 2. * h;
+        let viewport_width: f64 = aspect_ratio * viewport_height;
         const FOCAL_LENGTH: f64 = 1.;
 
         let origin: Vec3 = Vec3::new(0., 0., 0.);
-        let horizontal: Vec3 = Vec3::new(VIEWPORT_WIDTH, 0., 0.);
-        let vertical: Vec3 = Vec3::new(0., VIEWPORT_HEIGHT, 0.);
+        let horizontal: Vec3 = Vec3::new(viewport_width, 0., 0.);
+        let vertical: Vec3 = Vec3::new(0., viewport_height, 0.);
         let depth: Vec3 = Vec3::new(0., 0., FOCAL_LENGTH);
 
         let lower_left_corner: Vec3 = origin - horizontal / 2. - vertical / 2. - depth;
 
-        let direction = lower_left_corner + horizontal * u + vertical * v - origin;
-        Ray::new(origin, direction)
+        Camera { origin, lower_left_corner, horizontal, vertical }
+        
+    }
+
+    // `u` and `v` are numbers between 0 and 1, representing how far
+    // along the viewport axes to generate the ray.
+    fn ray_through(&self, u: f64, v: f64) -> Ray {
+        let direction = self.lower_left_corner + self.horizontal * u + self.vertical * v - self.origin;
+        Ray::new(self.origin, direction)
     }
 
 }
@@ -594,7 +605,8 @@ fn main() {
     // - y is positive going up,
     // - z is positive *coming out of the screen*.
     //
-    let camera = Camera {};
+    const VFOV: f64 = 60.;
+    let camera = Camera::new(VFOV, ASPECT_RATIO);
 
     // Render
     println!("P3");
