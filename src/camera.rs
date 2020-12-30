@@ -1,5 +1,6 @@
+use rand::distributions::Distribution;
 use crate::ray::Ray;
-use crate::vector::random_in_unit_disk;
+use crate::vector::RandomInUnitDiskVec3;
 use crate::vector::Vec3;
 
 pub struct Camera {
@@ -56,7 +57,9 @@ impl Camera {
     // `s` and `t` are numbers between 0 and 1, representing how far
     // along the viewport axes to generate the ray.
     pub fn ray_through(&self, s: f64, t: f64) -> Ray {
-        let rd = random_in_unit_disk() * self.lens_radius;
+        let mut rng = rand::thread_rng();
+        let distribution = RandomInUnitDiskVec3::new();
+        let rd = distribution.sample(&mut rng) * self.lens_radius;
         let offset = self.u * rd.x + self.v * rd.y;
         let origin = self.origin + offset;
         let direction =

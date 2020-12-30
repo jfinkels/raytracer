@@ -44,7 +44,7 @@ fn make_camera() -> Camera {
     let lookat = Vec3::new(0., 0., -1.);
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = (lookfrom - lookat).norm();
-    const APERTURE: f64 = 1.;
+    const APERTURE: f64 = 0.25;
     const VFOV: f64 = 20.;
     Camera::new(
         lookfrom,
