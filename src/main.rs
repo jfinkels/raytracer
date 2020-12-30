@@ -1,22 +1,12 @@
-mod camera;
-mod color;
-mod hittable;
-mod image;
-mod materials;
-mod ray;
-mod render;
-mod surfaces;
-mod vector;
-
-use crate::camera::Camera;
-use crate::hittable::Hittable;
-use crate::image::Image;
-use crate::materials::Dielectric;
-use crate::materials::Lambertian;
-use crate::materials::Metal;
-use crate::render::Renderer;
-use crate::surfaces::Sphere;
-use crate::vector::Vec3;
+use raytracer::Camera;
+use raytracer::Dielectric;
+use raytracer::Hittable;
+use raytracer::Image;
+use raytracer::Lambertian;
+use raytracer::Metal;
+use raytracer::Renderer;
+use raytracer::Sphere;
+use raytracer::Vec3;
 
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
