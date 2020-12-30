@@ -1,8 +1,6 @@
-use crate::vector::Vec3;
-use crate::vector::random_in_unit_disk;
 use crate::ray::Ray;
-
-
+use crate::vector::random_in_unit_disk;
+use crate::vector::Vec3;
 
 pub struct Camera {
     origin: Vec3,
@@ -16,9 +14,16 @@ pub struct Camera {
 }
 
 impl Camera {
-
     // vertical field of view in degrees
-    pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64) -> Camera {
+    pub fn new(
+        lookfrom: Vec3,
+        lookat: Vec3,
+        vup: Vec3,
+        vfov: f64,
+        aspect_ratio: f64,
+        aperture: f64,
+        focus_dist: f64,
+    ) -> Camera {
         let theta = vfov.to_radians();
         let h = (theta / 2.).tan();
         let viewport_height: f64 = 2. * h;
@@ -32,11 +37,20 @@ impl Camera {
         let horizontal = u * viewport_width * focus_dist;
         let vertical = v * viewport_height * focus_dist;
 
-        let lower_left_corner: Vec3 = origin - (horizontal / 2.) - (vertical / 2.) - (w * focus_dist);
+        let lower_left_corner: Vec3 =
+            origin - (horizontal / 2.) - (vertical / 2.) - (w * focus_dist);
         let lens_radius = aperture / 2.;
 
-        Camera { origin, lower_left_corner, horizontal, vertical, u, v, w, lens_radius }
-        
+        Camera {
+            origin,
+            lower_left_corner,
+            horizontal,
+            vertical,
+            u,
+            v,
+            w,
+            lens_radius,
+        }
     }
 
     // `s` and `t` are numbers between 0 and 1, representing how far
@@ -45,8 +59,8 @@ impl Camera {
         let rd = random_in_unit_disk() * self.lens_radius;
         let offset = self.u * rd.x + self.v * rd.y;
         let origin = self.origin + offset;
-        let direction = self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin - offset;
+        let direction =
+            self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin - offset;
         Ray::new(origin, direction)
     }
-
 }

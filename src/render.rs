@@ -12,10 +12,19 @@ pub struct Renderer {
     max_depth: u8,
 }
 
-
 impl Renderer {
-    pub fn new(camera: Camera, world: Vec<Box<dyn Hittable>>, samples_per_pixel: u8, max_depth: u8) -> Renderer {
-        Renderer { camera, world, samples_per_pixel, max_depth }
+    pub fn new(
+        camera: Camera,
+        world: Vec<Box<dyn Hittable>>,
+        samples_per_pixel: u8,
+        max_depth: u8,
+    ) -> Renderer {
+        Renderer {
+            camera,
+            world,
+            samples_per_pixel,
+            max_depth,
+        }
     }
 
     fn background_color(ray: Ray) -> Vec3 {
@@ -35,14 +44,13 @@ impl Renderer {
         match maybe_hit_record {
             Option::None => Renderer::background_color(ray),
             Option::Some(hit_record) => {
-
                 // FIXME I don't understand why the clone() is necessary.
                 let material = hit_record.material.clone();
                 match material.scatter(ray, hit_record) {
                     Some((scattered_ray, attenuation)) => {
                         let recursive_color = self.ray_color(scattered_ray, depth - 1);
                         attenuation.entrywise_mul(recursive_color)
-                    },
+                    }
                     None => Vec3::zero(),
                 }
             }
@@ -69,7 +77,6 @@ impl Renderer {
                 // average color in order to anti-alias.
                 let mut sub_color_sum = Vec3::zero();
                 for _ in 0..self.samples_per_pixel {
-
                     // Compute the direction of the vector from the camera to
                     // the viewport. The camera is at the origin.
                     //

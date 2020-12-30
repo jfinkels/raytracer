@@ -1,10 +1,10 @@
-use crate::vector::Vec3;
-use crate::vector::random_unit_vector;
-use crate::vector::random_in_unit_sphere;
 use crate::hittable::AttenuatedRay;
 use crate::hittable::HitRecord;
 use crate::hittable::Material;
 use crate::ray::Ray;
+use crate::vector::random_in_unit_sphere;
+use crate::vector::random_unit_vector;
+use crate::vector::Vec3;
 
 #[derive(Clone)]
 pub struct Lambertian {
@@ -57,7 +57,6 @@ impl Material for Metal {
     }
 }
 
-
 #[derive(Clone)]
 pub struct Dielectric {
     refraction_index: f64,
@@ -69,7 +68,6 @@ impl Dielectric {
     }
 }
 
-
 // Schlick's approximation for reflectance.
 fn reflectance(cosine: f64, refraction_index: f64) -> f64 {
     let r0 = ((1. - refraction_index) / (1. + refraction_index)).powf(2.);
@@ -80,7 +78,6 @@ fn is_reflectance_large(cos_theta: f64, refraction_ratio: f64) -> bool {
     reflectance(cos_theta, refraction_ratio) > rand::random::<f64>()
 }
 
-
 fn refract(unit_vec: Vec3, normal: Vec3, eta_i_over_eta_t: f64) -> Vec3 {
     let cos_theta = (-unit_vec).dot(normal).min(1.);
     let r_out_perp = (unit_vec + normal * cos_theta) * eta_i_over_eta_t;
@@ -89,7 +86,6 @@ fn refract(unit_vec: Vec3, normal: Vec3, eta_i_over_eta_t: f64) -> Vec3 {
 }
 
 impl Material for Dielectric {
-
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
         // Invert the index of refraction if the ray is entering
         // versus exiting the material.

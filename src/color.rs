@@ -11,15 +11,12 @@ fn clamp(x: f64, min: f64, max: f64) -> f64 {
     x.min(max).max(min)
 }
 
-
 impl Color {
-
     fn new(red: u8, green: u8, blue: u8) -> Color {
-        Color {red, green, blue}
+        Color { red, green, blue }
     }
 
     fn from_ratios(red: f64, green: f64, blue: f64) -> Color {
-
         // Gamma correction with gamma = 2.
         let red = red.sqrt();
         let green = green.sqrt();

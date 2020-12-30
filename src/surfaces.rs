@@ -1,5 +1,5 @@
-use crate::hittable::Hittable;
 use crate::hittable::HitRecord;
+use crate::hittable::Hittable;
 use crate::hittable::Material;
 use crate::ray::Ray;
 use crate::vector::Vec3;
@@ -11,15 +11,16 @@ pub struct Sphere {
 }
 
 impl Sphere {
-
     pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
-        Sphere { center, radius, material }
+        Sphere {
+            center,
+            radius,
+            material,
+        }
     }
-
 }
 
 impl Hittable for Sphere {
-
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = ray.direction.normsquared();
@@ -29,7 +30,6 @@ impl Hittable for Sphere {
         if discriminant < 0. {
             None
         } else {
-
             let sqrtd = discriminant.sqrt();
 
             let (t_min, t_max) = time_bounds;
@@ -44,7 +44,7 @@ impl Hittable for Sphere {
                 if t_min <= root2 && root2 <= t_max {
                     root2
                 } else {
-                    return None
+                    return None;
                 }
             };
 
@@ -55,5 +55,4 @@ impl Hittable for Sphere {
             Some(HitRecord::new(ray, t, normal, material))
         }
     }
-
 }

@@ -1,5 +1,5 @@
-use rand::distributions::Uniform;
 use rand::distributions::Distribution;
+use rand::distributions::Uniform;
 
 use std::ops::Add;
 use std::ops::AddAssign;
@@ -7,7 +7,6 @@ use std::ops::Div;
 use std::ops::Mul;
 use std::ops::Neg;
 use std::ops::Sub;
-
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vec3 {
@@ -17,7 +16,6 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-
     pub fn new(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3 { x, y, z }
     }
@@ -35,11 +33,7 @@ impl Vec3 {
     }
 
     pub fn entrywise_mul(self, other: Vec3) -> Vec3 {
-        Vec3::new(
-            self.x * other.x,
-            self.y * other.y,
-            self.z * other.z,
-        )
+        Vec3::new(self.x * other.x, self.y * other.y, self.z * other.z)
     }
 
     pub fn interpolate(u: Vec3, v: Vec3, t: f64) -> Vec3 {
@@ -68,7 +62,6 @@ impl Vec3 {
     }
 }
 
-
 impl Div<f64> for Vec3 {
     type Output = Self;
 
@@ -80,7 +73,6 @@ impl Div<f64> for Vec3 {
         }
     }
 }
-
 
 impl Mul<f64> for Vec3 {
     type Output = Self;
@@ -94,7 +86,6 @@ impl Mul<f64> for Vec3 {
     }
 }
 
-
 impl Sub for Vec3 {
     type Output = Self;
 
@@ -106,7 +97,6 @@ impl Sub for Vec3 {
         }
     }
 }
-
 
 impl Add for Vec3 {
     type Output = Self;
@@ -120,13 +110,11 @@ impl Add for Vec3 {
     }
 }
 
-
 impl AddAssign for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
-
 
 impl Neg for Vec3 {
     type Output = Self;
@@ -140,7 +128,6 @@ impl Neg for Vec3 {
     }
 }
 
-
 fn random_vec3(min: f64, max: f64) -> Vec3 {
     let unif = Uniform::from(min..max);
     let mut rng = rand::thread_rng();
@@ -150,11 +137,9 @@ fn random_vec3(min: f64, max: f64) -> Vec3 {
     Vec3::new(x, y, z)
 }
 
-
 pub fn random_unit_vector() -> Vec3 {
     random_in_unit_sphere().unit()
 }
-
 
 pub fn random_in_unit_sphere() -> Vec3 {
     loop {
@@ -164,7 +149,6 @@ pub fn random_in_unit_sphere() -> Vec3 {
         }
     }
 }
-
 
 pub fn random_in_unit_disk() -> Vec3 {
     let min = -1.;
