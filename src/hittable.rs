@@ -62,6 +62,9 @@ pub trait Hittable {
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord>;
 }
 
+// TODO This could be more generic, but I don't know how to do it in
+// Rust. We could implement `Hittable` for any iterator over `Box<dyn
+// Hittable>` structs, not just `Vec<Box<dyn Hittable>>`.
 impl Hittable for Vec<Box<dyn Hittable>> {
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
         let mut maybe_closest = None;
