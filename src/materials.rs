@@ -1,4 +1,3 @@
-use rand::distributions::Distribution;
 use crate::hittable::AttenuatedRay;
 use crate::hittable::HitRecord;
 use crate::hittable::Material;
@@ -6,6 +5,7 @@ use crate::ray::Ray;
 use crate::vector::RandomInUnitBallVec3;
 use crate::vector::RandomUnitVec3;
 use crate::vector::Vec3;
+use rand::distributions::Distribution;
 
 #[derive(Clone)]
 pub struct Lambertian {
@@ -20,7 +20,6 @@ impl Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, _ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
-
         // The incoming ray is ignored, and we treat the surface of
         // the material as emitting its own color.
         let emitted = hit_record.normal;
@@ -43,7 +42,6 @@ impl Material for Lambertian {
             noisy_emitted
         };
         let scattered_ray = Ray::new(origin, direction);
-
 
         // The attenuation is the color of the material itself.
         let attenuation = self.albedo;
@@ -70,7 +68,6 @@ fn reflect(v: Vec3, normal: Vec3) -> Vec3 {
 
 impl Material for Metal {
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
-
         // Reflect the incoming ray off the plane defined by the
         // surface normal.
         let unit_direction = ray.direction.unit();
@@ -116,14 +113,12 @@ fn reflectance(cos_theta: f64, refraction_index: f64) -> f64 {
     r0 + (1. - r0) * (1. - cos_theta).powf(5.)
 }
 
-
 fn refract(unit_vec: Vec3, normal: Vec3, refraction_index: f64) -> Vec3 {
     let cos_theta = -unit_vec.dot(normal).min(1.);
     let r_out_perp = (unit_vec + normal * cos_theta) * refraction_index;
     let r_out_parallel = -normal * (1. - r_out_perp.normsquared()).abs().sqrt();
     r_out_perp + r_out_parallel
 }
-
 
 fn should_reflect(unit_vec: Vec3, normal: Vec3, refraction_index: f64) -> bool {
     let cos_theta = -unit_vec.dot(normal).min(1.);
@@ -133,10 +128,8 @@ fn should_reflect(unit_vec: Vec3, normal: Vec3, refraction_index: f64) -> bool {
     cannot_refract || is_reflectance_large
 }
 
-
 impl Material for Dielectric {
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
-
         // Invert the index of refraction if the ray is entering
         // versus exiting the material.
         let refraction_ratio = if hit_record.front_face {

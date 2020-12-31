@@ -1,7 +1,7 @@
-use rand::distributions::Distribution;
 use crate::ray::Ray;
 use crate::vector::RandomInUnitDiskVec3;
 use crate::vector::Vec3;
+use rand::distributions::Distribution;
 
 pub struct Camera {
     origin: Vec3,
