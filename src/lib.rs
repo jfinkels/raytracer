@@ -6,6 +6,7 @@ mod materials;
 mod ray;
 mod render;
 mod surfaces;
+mod tracer;
 mod vector;
 mod viewport;
 
@@ -17,7 +18,9 @@ pub use crate::image::Image;
 pub use crate::materials::Dielectric;
 pub use crate::materials::Lambertian;
 pub use crate::materials::Metal;
+pub use crate::render::AveragingPixelRenderer;
 pub use crate::render::Renderer;
 pub use crate::surfaces::Sphere;
+pub use crate::tracer::Tracer;
 pub use crate::vector::Vec3;
 pub use crate::viewport::Viewport;

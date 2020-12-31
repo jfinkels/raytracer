@@ -1,3 +1,4 @@
+use raytracer::AveragingPixelRenderer;
 use raytracer::Camera;
 use raytracer::Dielectric;
 use raytracer::Hittable;
@@ -8,6 +9,7 @@ use raytracer::Metal;
 use raytracer::Orientation;
 use raytracer::Renderer;
 use raytracer::Sphere;
+use raytracer::Tracer;
 use raytracer::Vec3;
 use raytracer::Viewport;
 
@@ -63,9 +65,17 @@ fn make_camera() -> Camera {
 }
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
-    const SAMPLES_PER_PIXEL: u8 = 50;
     const MAX_DEPTH: u8 = 10;
-    Renderer::new(camera, world, SAMPLES_PER_PIXEL, MAX_DEPTH)
+    let tracer = Tracer::new(world, MAX_DEPTH);
+
+    const SAMPLES_PER_PIXEL: u8 = 50;
+    let pixel_renderer = Box::new(AveragingPixelRenderer::new(
+        camera,
+        tracer,
+        SAMPLES_PER_PIXEL,
+    ));
+
+    Renderer::new(pixel_renderer)
 }
 
 fn main() {
