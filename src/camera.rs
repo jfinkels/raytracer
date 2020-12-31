@@ -20,7 +20,6 @@ impl Orientation {
     }
 }
 
-
 pub struct Lens {
     radius: f64,
 }
@@ -40,14 +39,9 @@ struct Basis {
 
 impl Basis {
     fn new(u: Vec3, v: Vec3, w: Vec3) -> Basis {
-        Basis {
-            u,
-            v,
-            w,
-        }
+        Basis { u, v, w }
     }
 }
-
 
 struct ViewportDimensions {
     horizontal: Vec3,
@@ -57,7 +51,6 @@ struct ViewportDimensions {
 
 impl ViewportDimensions {
     fn new(basis: &Basis, viewport: Viewport, focus_dist: f64) -> ViewportDimensions {
-
         // Get the orthonormal basis vectors of the viewport.
         let u = basis.u;
         let v = basis.v;
@@ -82,10 +75,7 @@ impl ViewportDimensions {
     fn lower_left_corner(&self) -> Vec3 {
         (self.horizontal / 2.) + (self.vertical / 2.) + self.depth
     }
-
 }
-
-
 
 pub struct Camera {
     origin: Vec3,
@@ -95,9 +85,7 @@ pub struct Camera {
     lens: Lens,
 }
 
-
 impl Camera {
-
     // vertical field of view in degrees
     pub fn new(
         orientation: Orientation,
@@ -105,7 +93,6 @@ impl Camera {
         lens: Lens,
         focus_dist: f64,
     ) -> Camera {
-
         // The location of the camera in world coordinates.
         let origin = orientation.lookfrom;
 
@@ -140,17 +127,28 @@ impl Camera {
     // `s` and `t` are numbers between 0 and 1, representing how far
     // along the viewport axes to generate the ray.
     pub fn ray_through(&self, s: f64, t: f64) -> Ray {
+        // Generate random noise in the location in the camera at
+        // which the ray is generated. This random noise is scaled by
+        // the lens radius. If the radius is zero, there is no noise.
         let mut rng = rand::thread_rng();
         let distribution = RandomInUnitDiskVec3::new();
         let rd = distribution.sample(&mut rng) * self.lens.radius;
-        let u = self.basis.u;
-        let v = self.basis.v;
-        let offset = u * rd.x + v * rd.y;
-        let origin = self.origin + offset;
+        let noise = self.basis.u * rd.x + self.basis.v * rd.y;
+
+        // The ray originates at the location of the camera with some
+        // noise. The noise gives the camera a "depth of field"
+        // effect.
+        let origin = self.origin + noise;
+
+        // Compute the direction in which the ray is travelling.
+        //
+        // The ray is directed from the origin point through the point
+        // in the viewport indicated by the `s` and `t` percentages.
         let horizontal = self.viewport_dimensions.horizontal;
         let vertical = self.viewport_dimensions.vertical;
         let direction =
-            self.lower_left_corner + horizontal * s + vertical * t - self.origin - offset;
+            self.lower_left_corner + horizontal * s + vertical * t - self.origin - noise;
+
         Ray::new(origin, direction)
     }
 }

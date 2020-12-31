@@ -43,7 +43,6 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
 }
 
 fn make_camera() -> Camera {
-
     // Specify the orientation of the camera.
     let lookfrom = Vec3::new(3., 3., 2.);
     let lookat = Vec3::new(0., 0., -1.);
@@ -60,12 +59,7 @@ fn make_camera() -> Camera {
 
     let dist_to_focus = (lookfrom - lookat).norm();
 
-    Camera::new(
-        orientation,
-        viewport,
-        lens,
-        dist_to_focus,
-    )
+    Camera::new(orientation, viewport, lens, dist_to_focus)
 }
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
