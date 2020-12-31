@@ -7,8 +7,11 @@ mod ray;
 mod render;
 mod surfaces;
 mod vector;
+mod viewport;
 
 pub use crate::camera::Camera;
+pub use crate::camera::Lens;
+pub use crate::camera::Orientation;
 pub use crate::hittable::Hittable;
 pub use crate::image::Image;
 pub use crate::materials::Dielectric;
@@ -17,3 +20,4 @@ pub use crate::materials::Metal;
 pub use crate::render::Renderer;
 pub use crate::surfaces::Sphere;
 pub use crate::vector::Vec3;
+pub use crate::viewport::Viewport;

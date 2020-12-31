@@ -3,10 +3,13 @@ use raytracer::Dielectric;
 use raytracer::Hittable;
 use raytracer::Image;
 use raytracer::Lambertian;
+use raytracer::Lens;
 use raytracer::Metal;
+use raytracer::Orientation;
 use raytracer::Renderer;
 use raytracer::Sphere;
 use raytracer::Vec3;
+use raytracer::Viewport;
 
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
@@ -40,26 +43,34 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
 }
 
 fn make_camera() -> Camera {
+
+    // Specify the orientation of the camera.
     let lookfrom = Vec3::new(3., 3., 2.);
     let lookat = Vec3::new(0., 0., -1.);
     let vup = Vec3::new(0., 1., 0.);
-    let dist_to_focus = (lookfrom - lookat).norm();
-    const APERTURE: f64 = 0.25;
+    let orientation = Orientation::new(lookfrom, lookat, vup);
+
+    // Create the viewport.
     const VFOV: f64 = 20.;
+    let viewport = Viewport::new(VFOV, ASPECT_RATIO);
+
+    // Create the lens.
+    const APERTURE: f64 = 0.25;
+    let lens = Lens::new(APERTURE);
+
+    let dist_to_focus = (lookfrom - lookat).norm();
+
     Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        VFOV,
-        ASPECT_RATIO,
-        APERTURE,
+        orientation,
+        viewport,
+        lens,
         dist_to_focus,
     )
 }
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
-    const SAMPLES_PER_PIXEL: u8 = 200;
-    const MAX_DEPTH: u8 = 20;
+    const SAMPLES_PER_PIXEL: u8 = 50;
+    const MAX_DEPTH: u8 = 10;
     Renderer::new(camera, world, SAMPLES_PER_PIXEL, MAX_DEPTH)
 }
 
