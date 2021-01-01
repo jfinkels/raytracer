@@ -1,29 +1,11 @@
 use crate::ray::Ray;
 use crate::vector::Vec3;
+use std::rc::Rc;
 
 pub type AttenuatedRay = (Ray, Vec3);
 
-// All this is to allow for cloning `Box<dyn Material>`. See
-// https://stackoverflow.com/questions/30353462/how-to-clone-a-struct-storing-a-boxed-trait-object
-
-pub trait Material: MaterialClone {
+pub trait Material {
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay>;
-}
-
-pub trait MaterialClone {
-    fn clone_box(&self) -> Box<dyn Material>;
-}
-
-impl<T: 'static + Material + Clone> MaterialClone for T {
-    fn clone_box(&self) -> Box<dyn Material> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn Material> {
-    fn clone(&self) -> Box<dyn Material> {
-        self.clone_box()
-    }
 }
 
 pub struct HitRecord {
@@ -31,7 +13,7 @@ pub struct HitRecord {
     pub normal: Vec3,
     pub time: f64,
     pub front_face: bool,
-    pub material: Box<dyn Material>,
+    pub material: Rc<dyn Material>,
 }
 
 impl HitRecord {
@@ -39,7 +21,7 @@ impl HitRecord {
         ray: &Ray,
         time: f64,
         outward_normal: Vec3,
-        material: Box<dyn Material>,
+        material: Rc<dyn Material>,
     ) -> HitRecord {
         let point = ray.at(time);
         let front_face = ray.direction.dot(outward_normal) < 0.;

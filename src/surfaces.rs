@@ -3,15 +3,16 @@ use crate::hittable::Hittable;
 use crate::hittable::Material;
 use crate::ray::Ray;
 use crate::vector::Vec3;
+use std::rc::Rc;
 
 pub struct Sphere {
     center: Vec3,
     radius: f64,
-    material: Box<dyn Material>,
+    material: Rc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+    pub fn new(center: Vec3, radius: f64, material: Rc<dyn Material>) -> Sphere {
         Sphere {
             center,
             radius,
@@ -50,8 +51,10 @@ impl Hittable for Sphere {
 
             let point = ray.at(t);
             let normal = (point - self.center) / self.radius;
-            // FIXME I don't understand how to avoid cloning here.
-            let material = self.material.clone();
+            // Because ownership of a material might be shared among
+            // multiple surfaces *and* among multiple `HitRecord`
+            // structs, we use a reference counting smart pointer.
+            let material = Rc::clone(&self.material);
             Some(HitRecord::new(ray, t, normal, material))
         }
     }

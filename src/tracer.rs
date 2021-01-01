@@ -1,6 +1,7 @@
 use crate::hittable::Hittable;
 use crate::ray::Ray;
 use crate::vector::Vec3;
+use std::rc::Rc;
 
 pub struct Tracer {
     world: Vec<Box<dyn Hittable>>,
@@ -29,8 +30,7 @@ impl Tracer {
         match maybe_hit_record {
             Option::None => Tracer::background_color(ray),
             Option::Some(hit_record) => {
-                // FIXME I don't understand why the clone() is necessary.
-                let material = hit_record.material.clone();
+                let material = Rc::clone(&hit_record.material);
                 match material.scatter(ray, hit_record) {
                     Some((scattered_ray, attenuation)) => {
                         let recursive_color = self.ray_color(scattered_ray, depth - 1);
