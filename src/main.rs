@@ -28,9 +28,9 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
     let material_left = Rc::new(Dielectric::new(1.5));
     let material_right = Rc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.));
 
-    let material_center2 = Arc::new(Lambertian::new(Vec3::new(0.4, 0.1, 0.1)));
-    let material_left2 = Arc::new(Dielectric::new(2.5));
-    let material_right2 = Arc::new(Metal::new(Vec3::new(0.7, 0.7, 0.7), 0.1));
+    let material_center2 = Rc::new(Lambertian::new(Vec3::new(0.4, 0.1, 0.1)));
+    let material_left2 = Rc::new(Dielectric::new(2.5));
+    let material_right2 = Rc::new(Metal::new(Vec3::new(0.7, 0.7, 0.7), 0.1));
 
     vec![
         Box::new(Sphere::new(
@@ -38,24 +38,38 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
             100.0,
             material_ground,
         )),
-        Box::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5, material_center.clone())),
+        Box::new(Sphere::new(
+            Vec3::new(0., 0., -1.),
+            0.5,
+            material_center.clone(),
+        )),
         Box::new(Sphere::new(
             Vec3::new(-1., 0., -1.),
             0.5,
             material_left.clone(),
         )),
-        Box::new(Sphere::new(Vec3::new(-1., 0., -1.), -0.45, material_left.clone())),
-        Box::new(Sphere::new(Vec3::new(1., 0., -1.), 0.5, material_right.clone())),
-
-
-
-
-
-        Box::new(Sphere::new(Vec3::new(-0.5, 0., -2.), 0.5, material_left2.clone())),
-        Box::new(Sphere::new(Vec3::new(-0.5, 0., -2.), -0.45, material_left2.clone())),
+        Box::new(Sphere::new(
+            Vec3::new(-1., 0., -1.),
+            -0.45,
+            material_left.clone(),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(1., 0., -1.),
+            0.5,
+            material_right.clone(),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(-0.5, 0., -2.),
+            0.5,
+            material_left2.clone(),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(-0.5, 0., -2.),
+            -0.45,
+            material_left2.clone(),
+        )),
         Box::new(Sphere::new(Vec3::new(-1.5, 0., -2.), 0.5, material_right2)),
         Box::new(Sphere::new(Vec3::new(0.5, 0., -2.), 0.5, material_center2)),
-
     ]
 }
 
@@ -83,7 +97,7 @@ fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
     const MAX_DEPTH: u8 = 10;
     let tracer = Tracer::new(world, MAX_DEPTH);
 
-    const SAMPLES_PER_PIXEL: u8 = 255;
+    const SAMPLES_PER_PIXEL: usize = 1000;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(
         camera,
         tracer,

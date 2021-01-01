@@ -40,11 +40,11 @@ impl PixelRenderer for NoisyPixelRenderer {
 
 pub struct AveragingPixelRenderer {
     subrenderer: NoisyPixelRenderer,
-    samples_per_pixel: u8,
+    samples_per_pixel: usize,
 }
 
 impl AveragingPixelRenderer {
-    pub fn new(camera: Camera, tracer: Tracer, samples_per_pixel: u8) -> AveragingPixelRenderer {
+    pub fn new(camera: Camera, tracer: Tracer, samples_per_pixel: usize) -> AveragingPixelRenderer {
         let subrenderer = NoisyPixelRenderer::new(camera, tracer);
         AveragingPixelRenderer {
             subrenderer,
