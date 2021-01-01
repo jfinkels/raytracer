@@ -17,7 +17,7 @@ use std::rc::Rc;
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
 fn make_image() -> Image {
-    const IMAGE_WIDTH: usize = 400;
+    const IMAGE_WIDTH: usize = 600;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     Image::new(IMAGE_WIDTH, IMAGE_HEIGHT)
 }
@@ -28,20 +28,34 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
     let material_left = Rc::new(Dielectric::new(1.5));
     let material_right = Rc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.));
 
+    let material_center2 = Arc::new(Lambertian::new(Vec3::new(0.4, 0.1, 0.1)));
+    let material_left2 = Arc::new(Dielectric::new(2.5));
+    let material_right2 = Arc::new(Metal::new(Vec3::new(0.7, 0.7, 0.7), 0.1));
+
     vec![
         Box::new(Sphere::new(
             Vec3::new(0., -100.5, -1.),
             100.0,
             material_ground,
         )),
-        Box::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5, material_center)),
+        Box::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5, material_center.clone())),
         Box::new(Sphere::new(
             Vec3::new(-1., 0., -1.),
             0.5,
             material_left.clone(),
         )),
-        Box::new(Sphere::new(Vec3::new(-1., 0., -1.), -0.45, material_left)),
-        Box::new(Sphere::new(Vec3::new(1., 0., -1.), 0.5, material_right)),
+        Box::new(Sphere::new(Vec3::new(-1., 0., -1.), -0.45, material_left.clone())),
+        Box::new(Sphere::new(Vec3::new(1., 0., -1.), 0.5, material_right.clone())),
+
+
+
+
+
+        Box::new(Sphere::new(Vec3::new(-0.5, 0., -2.), 0.5, material_left2.clone())),
+        Box::new(Sphere::new(Vec3::new(-0.5, 0., -2.), -0.45, material_left2.clone())),
+        Box::new(Sphere::new(Vec3::new(-1.5, 0., -2.), 0.5, material_right2)),
+        Box::new(Sphere::new(Vec3::new(0.5, 0., -2.), 0.5, material_center2)),
+
     ]
 }
 
@@ -53,7 +67,7 @@ fn make_camera() -> Camera {
     let orientation = Orientation::new(lookfrom, lookat, vup);
 
     // Create the viewport.
-    const VFOV: f64 = 20.;
+    const VFOV: f64 = 35.;
     let viewport = Viewport::new(VFOV, ASPECT_RATIO);
 
     // Create the lens.
@@ -69,7 +83,7 @@ fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
     const MAX_DEPTH: u8 = 10;
     let tracer = Tracer::new(world, MAX_DEPTH);
 
-    const SAMPLES_PER_PIXEL: u8 = 50;
+    const SAMPLES_PER_PIXEL: u8 = 255;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(
         camera,
         tracer,
