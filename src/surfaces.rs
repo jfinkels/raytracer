@@ -1,3 +1,4 @@
+use crate::boundingbox::BoundingBox;
 use crate::hittable::HitRecord;
 use crate::hittable::Hittable;
 use crate::hittable::Material;
@@ -48,9 +49,25 @@ impl Sphere {
     fn direction(&self) -> Vec3 {
         self.center_end - self.center_start
     }
+
+    fn bounding_box_at(&self, time: f64) -> BoundingBox {
+        let r = self.radius;
+        let corner = Vec3::new(r, r, r);
+        let center = self.center(time);
+        let minimum = center - corner;
+        let maximum = center + corner;
+        BoundingBox::Nonempty { minimum, maximum }
+    }
 }
 
 impl Hittable for Sphere {
+    fn bounding_box(&self, time_bounds: (f64, f64)) -> BoundingBox {
+        let (t0, t1) = time_bounds;
+        let box0 = self.bounding_box_at(t0);
+        let box1 = self.bounding_box_at(t1);
+        BoundingBox::surrounding(box0, box1)
+    }
+
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
         let center = self.center(ray.time);
         let oc = ray.origin - center;

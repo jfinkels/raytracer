@@ -1,3 +1,4 @@
+use crate::boundingbox::BoundingBox;
 use crate::ray::Ray;
 use crate::vector::Vec3;
 use std::rc::Rc;
@@ -41,6 +42,7 @@ impl HitRecord {
 }
 
 pub trait Hittable {
+    fn bounding_box(&self, time_bounds: (f64, f64)) -> BoundingBox;
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord>;
 }
 
@@ -48,6 +50,12 @@ pub trait Hittable {
 // Rust. We could implement `Hittable` for any iterator over `Box<dyn
 // Hittable>` structs, not just `Vec<Box<dyn Hittable>>`.
 impl Hittable for Vec<Box<dyn Hittable>> {
+    fn bounding_box(&self, time_bounds: (f64, f64)) -> BoundingBox {
+        self.iter()
+            .map(|x| x.bounding_box(time_bounds))
+            .fold(BoundingBox::Empty, BoundingBox::surrounding)
+    }
+
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
         let mut maybe_closest = None;
         for hittable in self.into_iter() {
