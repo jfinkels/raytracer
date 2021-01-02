@@ -2,28 +2,58 @@ use crate::hittable::HitRecord;
 use crate::hittable::Hittable;
 use crate::hittable::Material;
 use crate::ray::Ray;
+use crate::time::Duration;
 use crate::vector::Vec3;
 use std::rc::Rc;
 
 pub struct Sphere {
-    center: Vec3,
+    center_start: Vec3,
+    center_end: Vec3,
+    duration: Duration,
     radius: f64,
     material: Rc<dyn Material>,
 }
 
 impl Sphere {
     pub fn new(center: Vec3, radius: f64, material: Rc<dyn Material>) -> Sphere {
+        let center_start = center;
+        let center_end = center;
+        let duration = Duration::max();
+        Sphere::new_moving(center_start, center_end, duration, radius, material)
+    }
+
+    pub fn new_moving(
+        center_start: Vec3,
+        center_end: Vec3,
+        duration: Duration,
+        radius: f64,
+        material: Rc<dyn Material>,
+    ) -> Sphere {
         Sphere {
-            center,
+            center_start,
+            center_end,
+            duration,
             radius,
             material,
         }
+    }
+
+    fn center(&self, time: f64) -> Vec3 {
+        let t = (time - self.duration.start) / self.duration.len();
+        let a = self.center_start;
+        let b = self.direction();
+        a + b * t
+    }
+
+    fn direction(&self) -> Vec3 {
+        self.center_end - self.center_start
     }
 }
 
 impl Hittable for Sphere {
     fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
-        let oc = ray.origin - self.center;
+        let center = self.center(ray.time);
+        let oc = ray.origin - center;
         let a = ray.direction.normsquared();
         let b = ray.direction.dot(oc) * 2.;
         let c = oc.normsquared() - self.radius.powf(2.);
@@ -50,7 +80,7 @@ impl Hittable for Sphere {
             };
 
             let point = ray.at(t);
-            let normal = (point - self.center) / self.radius;
+            let normal = (point - center) / self.radius;
             // Because ownership of a material might be shared among
             // multiple surfaces *and* among multiple `HitRecord`
             // structs, we use a reference counting smart pointer.

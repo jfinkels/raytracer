@@ -19,7 +19,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
         // The incoming ray is ignored, and we treat the surface of
         // the material as emitting its own color.
         let emitted = hit_record.normal;
@@ -34,6 +34,9 @@ impl Material for Lambertian {
         //
         // If the noise would put the vector too close to the zero
         // vector, then we just eliminate the noise altogether.
+        //
+        // The scattered ray occurs at the same time as the incoming
+        // ray.
         let origin = hit_record.point;
         let noisy_emitted = emitted + noise;
         let direction = if noisy_emitted.near_zero() {
@@ -41,7 +44,8 @@ impl Material for Lambertian {
         } else {
             noisy_emitted
         };
-        let scattered_ray = Ray::new(origin, direction);
+        let time = ray.time;
+        let scattered_ray = Ray::new(origin, direction, time);
 
         // The attenuation is the color of the material itself.
         let attenuation = self.albedo;
@@ -85,9 +89,13 @@ impl Material for Metal {
 
         // The scattered ray originates at the hit point and goes in
         // the noisy reflected direction.
+        //
+        // The scattered ray occurs at the same time as the incoming
+        // ray.
         let origin = hit_record.point;
         let direction = reflected + noise;
-        let scattered_ray = Ray::new(origin, direction);
+        let time = ray.time;
+        let scattered_ray = Ray::new(origin, direction, time);
 
         // The attenuation is the color of the material itself.
         let attenuation = self.albedo;
@@ -155,9 +163,13 @@ impl Material for Dielectric {
 
         // The scattered ray originates at the hit point and goes in
         // the noisy reflected/refracted direction.
+        //
+        // The scattered ray occurs at the same time as the incoming
+        // ray.
         let origin = hit_record.point;
         let direction = new_direction + noise;
-        let scattered_ray = Ray::new(origin, direction);
+        let time = ray.time;
+        let scattered_ray = Ray::new(origin, direction, time);
 
         let attenuation = Vec3::new(1., 1., 1.);
 

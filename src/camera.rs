@@ -1,8 +1,10 @@
 use crate::ray::Ray;
+use crate::time::Duration;
 use crate::vector::RandomInUnitDiskVec3;
 use crate::vector::Vec3;
 use crate::viewport::Viewport;
 use rand::distributions::Distribution;
+use rand::distributions::Uniform;
 
 pub struct Orientation {
     lookfrom: Vec3,
@@ -83,6 +85,7 @@ pub struct Camera {
     viewport_dimensions: ViewportDimensions,
     basis: Basis,
     lens: Lens,
+    duration: Duration,
 }
 
 impl Camera {
@@ -92,6 +95,7 @@ impl Camera {
         viewport: Viewport,
         lens: Lens,
         focus_dist: f64,
+        duration: Duration,
     ) -> Camera {
         // The location of the camera in world coordinates.
         let origin = orientation.lookfrom;
@@ -121,6 +125,7 @@ impl Camera {
             viewport_dimensions,
             basis,
             lens,
+            duration,
         }
     }
 
@@ -149,6 +154,10 @@ impl Camera {
         let direction =
             self.lower_left_corner + horizontal * s + vertical * t - self.origin - noise;
 
-        Ray::new(origin, direction)
+        // The time at which the ray is sent from the camera.
+        let distribution = Uniform::new(self.duration.start, self.duration.end);
+        let time = distribution.sample(&mut rng);
+
+        Ray::new(origin, direction, time)
     }
 }

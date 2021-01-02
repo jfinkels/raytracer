@@ -1,6 +1,7 @@
 use raytracer::AveragingPixelRenderer;
 use raytracer::Camera;
 use raytracer::Dielectric;
+use raytracer::Duration;
 use raytracer::Hittable;
 use raytracer::Image;
 use raytracer::Lambertian;
@@ -17,7 +18,7 @@ use std::rc::Rc;
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
 fn make_image() -> Image {
-    const IMAGE_WIDTH: usize = 600;
+    const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
     Image::new(IMAGE_WIDTH, IMAGE_HEIGHT)
 }
@@ -38,33 +39,45 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
             100.0,
             material_ground,
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
+            Vec3::new(0., 0., 0.),
             Vec3::new(0., 0., -1.),
+            Duration::new(0., 1.),
             0.5,
             material_center.clone(),
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
             Vec3::new(-1., 0., -1.),
+            Vec3::new(-1.25, 0., -1.),
+            Duration::new(0., 1.),
             0.5,
             material_left.clone(),
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
             Vec3::new(-1., 0., -1.),
+            Vec3::new(-1.25, 0., -1.),
+            Duration::new(0., 1.),
             -0.45,
             material_left.clone(),
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
             Vec3::new(1., 0., -1.),
+            Vec3::new(1.2, 0., -1.),
+            Duration::new(0., 1.),
             0.5,
             material_right.clone(),
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
             Vec3::new(-0.5, 0., -2.),
+            Vec3::new(-0.6, 0., -2.2),
+            Duration::new(0., 1.),
             0.5,
             material_left2.clone(),
         )),
-        Box::new(Sphere::new(
+        Box::new(Sphere::new_moving(
             Vec3::new(-0.5, 0., -2.),
+            Vec3::new(-0.6, 0., -2.2),
+            Duration::new(0., 1.),
             -0.45,
             material_left2.clone(),
         )),
@@ -88,16 +101,20 @@ fn make_camera() -> Camera {
     const APERTURE: f64 = 0.25;
     let lens = Lens::new(APERTURE);
 
+    // Define the time at which the shutter opens and closes.
+    let duration = Duration::new(0., 1.);
+
+    // Define the focus distance.
     let dist_to_focus = (lookfrom - lookat).norm();
 
-    Camera::new(orientation, viewport, lens, dist_to_focus)
+    Camera::new(orientation, viewport, lens, dist_to_focus, duration)
 }
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
-    const MAX_DEPTH: u8 = 10;
+    const MAX_DEPTH: u8 = 20;
     let tracer = Tracer::new(world, MAX_DEPTH);
 
-    const SAMPLES_PER_PIXEL: usize = 1000;
+    const SAMPLES_PER_PIXEL: usize = 150;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(
         camera,
         tracer,
