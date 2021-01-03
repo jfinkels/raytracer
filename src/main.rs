@@ -1,5 +1,6 @@
 use raytracer::AveragingPixelRenderer;
 use raytracer::Camera;
+use raytracer::Checker;
 use raytracer::Dielectric;
 use raytracer::Duration;
 use raytracer::Hittable;
@@ -25,9 +26,10 @@ fn make_image() -> Image {
 }
 
 fn make_world() -> Vec<Box<dyn Hittable>> {
-    let material_ground = Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
-        0.8, 0.8, 0.0,
-    )))));
+    let material_ground = Rc::new(Lambertian::new(Rc::new(Checker::new(
+        Rc::new(SolidColor::new(Vec3::new(0.8, 0.8, 0.0))),
+        Rc::new(SolidColor::new(Vec3::new(0.5, 0.5, 0.0))),
+    ))));
     let material_center = Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
         0.1, 0.2, 0.5,
     )))));

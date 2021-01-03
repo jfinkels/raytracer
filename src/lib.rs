@@ -25,6 +25,7 @@ pub use crate::materials::Metal;
 pub use crate::render::AveragingPixelRenderer;
 pub use crate::render::Renderer;
 pub use crate::surfaces::Sphere;
+pub use crate::texture::Checker;
 pub use crate::texture::SolidColor;
 pub use crate::time::Duration;
 pub use crate::tracer::Tracer;
