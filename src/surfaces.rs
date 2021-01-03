@@ -117,3 +117,71 @@ impl Hittable for Sphere {
         }
     }
 }
+
+pub struct Rectangle {
+    bottom_left: (f64, f64),
+    top_right: (f64, f64),
+    z: f64,
+    material: Rc<dyn Material>,
+}
+
+impl Rectangle {
+    pub fn new(
+        bottom_left: (f64, f64),
+        top_right: (f64, f64),
+        z: f64,
+        material: Rc<dyn Material>,
+    ) -> Rectangle {
+        Rectangle {
+            bottom_left,
+            top_right,
+            z,
+            material,
+        }
+    }
+}
+
+// TODO Make it move-able.
+impl Hittable for Rectangle {
+    fn bounding_box(&self, _time_bounds: (f64, f64)) -> BoundingBox {
+        const EPS: f64 = 0.0001;
+        let (x0, y0) = self.bottom_left;
+        let (x1, y1) = self.top_right;
+        let z = self.z;
+        let minimum = Vec3::new(x0, y0, z - EPS);
+        let maximum = Vec3::new(x1, y1, z + EPS);
+        BoundingBox::Nonempty { minimum, maximum }
+    }
+    fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
+        let origin = ray.origin;
+        let direction = ray.direction;
+        let (x0, y0) = self.bottom_left;
+        let (x1, y1) = self.top_right;
+
+        let time = (self.z - origin.z) / direction.z;
+        let (t_min, t_max) = time_bounds;
+        if time < t_min || t_max < time {
+            return None;
+        }
+
+        let Vec3 { x, y, z: _ } = origin + direction * time;
+        if (x < x0 || x1 < x) || (y < y0 || y1 < y) {
+            return None;
+        }
+
+        let outward_normal = Vec3::new(0., 0., 1.);
+        let material = Rc::clone(&self.material);
+
+        let u = (x - x0) / (x1 - x0);
+        let v = (y - y0) / (y1 - y0);
+        let surface_coords = (u, v);
+
+        Some(HitRecord::new(
+            ray,
+            time,
+            outward_normal,
+            material,
+            surface_coords,
+        ))
+    }
+}

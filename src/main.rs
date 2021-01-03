@@ -2,6 +2,7 @@ use raytracer::AveragingPixelRenderer;
 use raytracer::Camera;
 use raytracer::Checker;
 use raytracer::Dielectric;
+use raytracer::DiffuseLight;
 use raytracer::Duration;
 use raytracer::Hittable;
 use raytracer::Image;
@@ -9,6 +10,7 @@ use raytracer::Lambertian;
 use raytracer::Lens;
 use raytracer::Metal;
 use raytracer::Orientation;
+use raytracer::Rectangle;
 use raytracer::Renderer;
 use raytracer::SolidColor;
 use raytracer::Sphere;
@@ -41,6 +43,10 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
     )))));
     let material_left2 = Rc::new(Dielectric::new(2.5));
     let material_right2 = Rc::new(Metal::new(Vec3::new(0.7, 0.7, 0.7), 0.1));
+
+    let material_light = Rc::new(DiffuseLight::new(Rc::new(SolidColor::new(Vec3::new(
+        4., 4., 4.,
+    )))));
 
     vec![
         Box::new(Sphere::new(
@@ -92,6 +98,17 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
         )),
         Box::new(Sphere::new(Vec3::new(-1.5, 0., -2.), 0.5, material_right2)),
         Box::new(Sphere::new(Vec3::new(0.5, 0., -2.), 0.5, material_center2)),
+        Box::new(Rectangle::new(
+            (-0.5, 0.),
+            (0.5, 1.),
+            -4.,
+            material_light.clone(),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(0., 5., -1.),
+            3.,
+            material_light.clone(),
+        )),
     ]
 }
 
@@ -121,7 +138,9 @@ fn make_camera() -> Camera {
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
     const MAX_DEPTH: u8 = 10;
-    let tracer = Tracer::new(world, MAX_DEPTH);
+    // let background_color = Vec3::new(0.7, 0.8, 1.);
+    let background_color = Vec3::zero();
+    let tracer = Tracer::new(world, MAX_DEPTH, background_color);
 
     const SAMPLES_PER_PIXEL: usize = 50;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(

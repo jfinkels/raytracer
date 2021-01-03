@@ -6,6 +6,9 @@ use std::rc::Rc;
 pub type AttenuatedRay = (Ray, Vec3);
 
 pub trait Material {
+    fn emit(&self, _point: &Vec3, _surface_coords: (f64, f64)) -> Vec3 {
+        Vec3::zero()
+    }
     fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay>;
 }
 
