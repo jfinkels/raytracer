@@ -179,3 +179,35 @@ impl Material for Dielectric {
         Some((scattered_ray, attenuation))
     }
 }
+
+pub struct Isotropic {
+    texture: Rc<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn new(texture: Rc<dyn Texture>) -> Isotropic {
+        Isotropic { texture }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+        // The scattered ray originates at the hit point and goes in a
+        // random direction.
+        //
+        // The scattered ray occurs at the same time as the incoming
+        // ray.
+        let origin = hit_record.point;
+        let mut rng = rand::thread_rng();
+        let distribution = RandomInUnitBallVec3::new();
+        let direction = distribution.sample(&mut rng);
+        let time = ray.time;
+        let scattered_ray = Ray::new(origin, direction, time);
+
+        // The attenuation is the texture of the material itself.
+        let surface_coords = hit_record.surface_coords;
+        let attenuation = self.texture.value(&origin, surface_coords);
+
+        Some((scattered_ray, attenuation))
+    }
+}

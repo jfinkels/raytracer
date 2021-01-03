@@ -20,7 +20,7 @@ impl Material for DiffuseLight {
     fn emit(&self, point: &Vec3, surface_coords: (f64, f64)) -> Vec3 {
         self.texture.value(point, surface_coords)
     }
-    fn scatter(&self, ray: Ray, hit_record: HitRecord) -> Option<AttenuatedRay> {
+    fn scatter(&self, _ray: Ray, _hit_record: HitRecord) -> Option<AttenuatedRay> {
         None
     }
 }

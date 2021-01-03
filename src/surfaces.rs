@@ -2,9 +2,13 @@ use crate::boundingbox::BoundingBox;
 use crate::hittable::HitRecord;
 use crate::hittable::Hittable;
 use crate::hittable::Material;
+use crate::materials::Isotropic;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::time::Duration;
 use crate::vector::Vec3;
+use rand::distributions::Distribution;
+use rand::distributions::Uniform;
 use std::f64::consts::PI;
 use std::rc::Rc;
 
@@ -183,5 +187,85 @@ impl Hittable for Rectangle {
             material,
             surface_coords,
         ))
+    }
+}
+
+pub struct ConstantMedium {
+    boundary: Box<dyn Hittable>,
+    material: Rc<dyn Material>,
+    neg_inv_density: f64,
+}
+
+impl ConstantMedium {
+    pub fn new(
+        boundary: Box<dyn Hittable>,
+        texture: Rc<dyn Texture>,
+        density: f64,
+    ) -> ConstantMedium {
+        let neg_inv_density = -1. / density;
+        let material = Rc::new(Isotropic::new(texture));
+        ConstantMedium {
+            boundary,
+            material,
+            neg_inv_density,
+        }
+    }
+}
+
+impl Hittable for ConstantMedium {
+    fn bounding_box(&self, time_bounds: (f64, f64)) -> BoundingBox {
+        self.boundary.bounding_box(time_bounds)
+    }
+    fn hits(&self, ray: &Ray, time_bounds: (f64, f64)) -> Option<HitRecord> {
+        // Get two hits in the underlying boundary object, one when
+        // the ray enters and one when the ray exits.
+        let time_bounds1 = (f64::INFINITY, f64::NEG_INFINITY);
+        match self.boundary.hits(ray, time_bounds1) {
+            Some(hit_record1) => {
+                const EPS: f64 = 0.0001;
+                let time_bounds2 = (hit_record1.time + EPS, time_bounds1.1);
+                match self.boundary.hits(ray, time_bounds2) {
+                    Some(hit_record2) => {
+                        // Get the time at which the ray enters and
+                        // exits the boundary.
+                        let (t_min, t_max) = time_bounds;
+                        let t_enter = hit_record1.time.max(t_min);
+                        let t_exit = hit_record2.time.min(t_max);
+
+                        if t_enter >= t_exit {
+                            None
+                        } else {
+                            let t_enter = t_enter.max(0.);
+
+                            let ray_length = ray.direction.norm();
+                            let distance_inside_boundary = (t_enter - t_exit) * ray_length;
+                            let mut rng = rand::thread_rng();
+                            let unif = Uniform::new(0., 1.);
+                            let r: f64 = unif.sample(&mut rng);
+                            let hit_distance = self.neg_inv_density * r.ln();
+
+                            if hit_distance > distance_inside_boundary {
+                                None
+                            } else {
+                                let time = t_enter + hit_distance / ray_length;
+                                let outward_normal = Vec3::new(1., 0., 0.); // arbitrary
+                                let material = Rc::clone(&self.material);
+                                let surface_coords = (0., 0.); // TODO Is this also arbitrary?
+
+                                Some(HitRecord::new(
+                                    ray,
+                                    time,
+                                    outward_normal,
+                                    material,
+                                    surface_coords,
+                                ))
+                            }
+                        }
+                    }
+                    None => None,
+                }
+            }
+            None => None,
+        }
     }
 }

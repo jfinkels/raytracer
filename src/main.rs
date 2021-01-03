@@ -1,6 +1,7 @@
 use raytracer::AveragingPixelRenderer;
 use raytracer::Camera;
 use raytracer::Checker;
+use raytracer::ConstantMedium;
 use raytracer::Dielectric;
 use raytracer::DiffuseLight;
 use raytracer::Duration;
@@ -98,6 +99,18 @@ fn make_world() -> Vec<Box<dyn Hittable>> {
         )),
         Box::new(Sphere::new(Vec3::new(-1.5, 0., -2.), 0.5, material_right2)),
         Box::new(Sphere::new(Vec3::new(0.5, 0., -2.), 0.5, material_center2)),
+        Box::new(ConstantMedium::new(
+            Box::new(Sphere::new(
+                Vec3::new(1., 1., -3.),
+                0.5,
+                Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
+                    1., 1., 1.,
+                ))))),
+            )),
+            Rc::new(SolidColor::new(Vec3::new(1., 1., 1.))),
+            0.2,
+        )),
+        // lights
         Box::new(Rectangle::new(
             (-0.5, 0.),
             (0.5, 1.),
@@ -142,7 +155,7 @@ fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
     let background_color = Vec3::zero();
     let tracer = Tracer::new(world, MAX_DEPTH, background_color);
 
-    const SAMPLES_PER_PIXEL: usize = 50;
+    const SAMPLES_PER_PIXEL: usize = 100;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(
         camera,
         tracer,
