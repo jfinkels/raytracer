@@ -9,6 +9,7 @@ use raytracer::Lens;
 use raytracer::Metal;
 use raytracer::Orientation;
 use raytracer::Renderer;
+use raytracer::SolidColor;
 use raytracer::Sphere;
 use raytracer::Tracer;
 use raytracer::Vec3;
@@ -24,12 +25,18 @@ fn make_image() -> Image {
 }
 
 fn make_world() -> Vec<Box<dyn Hittable>> {
-    let material_ground = Rc::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
-    let material_center = Rc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
+    let material_ground = Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
+        0.8, 0.8, 0.0,
+    )))));
+    let material_center = Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
+        0.1, 0.2, 0.5,
+    )))));
     let material_left = Rc::new(Dielectric::new(1.5));
     let material_right = Rc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.));
 
-    let material_center2 = Rc::new(Lambertian::new(Vec3::new(0.4, 0.1, 0.1)));
+    let material_center2 = Rc::new(Lambertian::new(Rc::new(SolidColor::new(Vec3::new(
+        0.4, 0.1, 0.1,
+    )))));
     let material_left2 = Rc::new(Dielectric::new(2.5));
     let material_right2 = Rc::new(Metal::new(Vec3::new(0.7, 0.7, 0.7), 0.1));
 
@@ -111,10 +118,10 @@ fn make_camera() -> Camera {
 }
 
 fn make_renderer(camera: Camera, world: Vec<Box<dyn Hittable>>) -> Renderer {
-    const MAX_DEPTH: u8 = 20;
+    const MAX_DEPTH: u8 = 10;
     let tracer = Tracer::new(world, MAX_DEPTH);
 
-    const SAMPLES_PER_PIXEL: usize = 150;
+    const SAMPLES_PER_PIXEL: usize = 50;
     let pixel_renderer = Box::new(AveragingPixelRenderer::new(
         camera,
         tracer,

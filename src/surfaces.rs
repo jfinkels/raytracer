@@ -5,6 +5,7 @@ use crate::hittable::Material;
 use crate::ray::Ray;
 use crate::time::Duration;
 use crate::vector::Vec3;
+use std::f64::consts::PI;
 use std::rc::Rc;
 
 pub struct Sphere {
@@ -16,6 +17,15 @@ pub struct Sphere {
 }
 
 impl Sphere {
+    fn surface_coords(point: Vec3) -> (f64, f64) {
+        let Vec3 { x, y, z } = point;
+        let theta = (-y).acos();
+        let phi = (-z).atan2(x) + PI;
+        let u = phi / (2. * PI);
+        let v = theta / PI;
+        (u, v)
+    }
+
     pub fn new(center: Vec3, radius: f64, material: Rc<dyn Material>) -> Sphere {
         let center_start = center;
         let center_end = center;
@@ -102,7 +112,8 @@ impl Hittable for Sphere {
             // multiple surfaces *and* among multiple `HitRecord`
             // structs, we use a reference counting smart pointer.
             let material = Rc::clone(&self.material);
-            Some(HitRecord::new(ray, t, normal, material))
+            let surface_coords = Sphere::surface_coords(normal);
+            Some(HitRecord::new(ray, t, normal, material, surface_coords))
         }
     }
 }

@@ -2,19 +2,21 @@ use crate::hittable::AttenuatedRay;
 use crate::hittable::HitRecord;
 use crate::hittable::Material;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::vector::RandomInUnitBallVec3;
 use crate::vector::RandomUnitVec3;
 use crate::vector::Vec3;
 use rand::distributions::Distribution;
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct Lambertian {
-    albedo: Vec3,
+    texture: Rc<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Lambertian {
-        Lambertian { albedo }
+    pub fn new(texture: Rc<dyn Texture>) -> Lambertian {
+        Lambertian { texture }
     }
 }
 
@@ -47,8 +49,9 @@ impl Material for Lambertian {
         let time = ray.time;
         let scattered_ray = Ray::new(origin, direction, time);
 
-        // The attenuation is the color of the material itself.
-        let attenuation = self.albedo;
+        // The attenuation is the texture of the material itself.
+        let surface_coords = hit_record.surface_coords;
+        let attenuation = self.texture.value(&origin, surface_coords);
 
         Some((scattered_ray, attenuation))
     }

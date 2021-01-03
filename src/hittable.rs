@@ -15,6 +15,7 @@ pub struct HitRecord {
     pub time: f64,
     pub front_face: bool,
     pub material: Rc<dyn Material>,
+    pub surface_coords: (f64, f64),
 }
 
 impl HitRecord {
@@ -23,6 +24,7 @@ impl HitRecord {
         time: f64,
         outward_normal: Vec3,
         material: Rc<dyn Material>,
+        surface_coords: (f64, f64),
     ) -> HitRecord {
         let point = ray.at(time);
         let front_face = ray.direction.dot(outward_normal) < 0.;
@@ -37,6 +39,7 @@ impl HitRecord {
             time,
             front_face,
             material,
+            surface_coords,
         }
     }
 }
